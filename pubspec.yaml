@@ -1,7 +1,20 @@
 name: face_detected
-description: "**Face Verification** is a comprehensive Flutter package that provides intelligent face verification capabilities with multi-step authentication using facial expressions and gestures. This package combines advanced machine learning face detection with user-friendly verification workflows, making it perfect for secure authentication, identity verification, and interactive camera applications."
+description: A comprehensive Flutter package for intelligent face verification with multi-step authentication using facial expressions and gestures. Perfect for secure authentication, identity verification, and biometric applications.
 version: 0.0.1
-homepage: https://github.com/AliJassib/face_detected
+homepage: https://github.com/AliJassib/face_detected_pub_dev
+repository: https://github.com/AliJassib/face_detected_pub_dev
+issue_tracker: https://github.com/AliJassib/face_detected_pub_dev/issues
+documentation: https://github.com/AliJassib/face_detected_pub_dev#readme
+
+topics:
+  - face-detection
+  - biometric
+  - authentication
+  - security
+  - camera
+  - ml-kit
+  - verification
+  - flutter-package
 
 environment:
   sdk: ^3.9.2
