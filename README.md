@@ -2,14 +2,12 @@
 
 <div align="center">
 
-![Face Detected Logo](https://raw.githubusercontent.com/AliJassib/face_detected_pub_dev/main/assets/logo.png)
 
 **Face Verification** is a comprehensive Flutter package that provides intelligent face verification capabilities with multi-step authentication using facial expressions and gestures.
 
 [![pub package](https://img.shields.io/pub/v/face_detected.svg)](https://pub.dev/packages/face_detected)
-[![popularity](https://badges.bar/face_detected/popularity)](https://pub.dev/packages/face_detected/score)
-[![likes](https://badges.bar/face_detected/likes)](https://pub.dev/packages/face_detected/score)
-[![pub points](https://badges.bar/face_detected/pub%20points)](https://pub.dev/packages/face_detected/score)
+
+
 
 </div>
 
@@ -36,7 +34,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  face_detected: ^0.0.1
+  face_detected: ^0.0.2
 ```
 
 Then run:

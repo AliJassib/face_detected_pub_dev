@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.2] - 2024-10-06
+
+### Changed
+- 📝 **Updated README.md** with improved documentation structure
+- ✨ **Enhanced formatting** and visual presentation
+- 🔗 **Added pub.dev badge** for package version display
+- 📱 **Improved code examples** with better formatting
+- 🎨 **Better visual organization** with icons and sections
+- 📋 **Clearer installation instructions** and platform setup
+- 🔧 **Enhanced troubleshooting section** with common solutions
+- 📞 **Updated support section** with contact information
+- 🏷️ **Added comprehensive tags** for better discoverability
+
+### Documentation
+- Improved overall documentation quality
+- Better code formatting and syntax highlighting
+- Enhanced readability with consistent styling
+- Added more detailed examples and use cases
+
 ## [0.0.1] - 2024-10-06
 
 ### Added
