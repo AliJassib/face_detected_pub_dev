@@ -11,10 +11,7 @@ topics:
   - biometric
   - authentication
   - security
-  - camera
   - ml-kit
-  - verification
-  - flutter-package
 
 environment:
   sdk: ^3.9.2
