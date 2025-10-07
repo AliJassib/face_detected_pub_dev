@@ -122,8 +122,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildImageGrid(List<String> imagePaths) {
     final labels = ['Smile', 'Eyes Closed', 'Eyes Open'];
-
-    return Container(
+    return SizedBox(
       height: 390,
       child: GridView.builder(
         scrollDirection: Axis.vertical,
