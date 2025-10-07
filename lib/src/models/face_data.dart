@@ -24,6 +24,12 @@ class FaceData {
   /// Head rotation around Z axis (roll)
   final double? headEulerAngleZ;
 
+  /// Facial landmarks (key points on the face)
+  final Map<FaceLandmarkType, FaceLandmark?>? landmarks;
+
+  /// Face contours (detailed face shape outlines)
+  final Map<FaceContourType, FaceContour?>? contours;
+
   /// Timestamp when this face data was captured
   final DateTime timestamp;
 
@@ -38,6 +44,8 @@ class FaceData {
     this.rightEyeOpenProbability,
     this.headEulerAngleY,
     this.headEulerAngleZ,
+    this.landmarks,
+    this.contours,
     required this.timestamp,
     this.originalFace,
   });
@@ -52,6 +60,8 @@ class FaceData {
       rightEyeOpenProbability: face.rightEyeOpenProbability,
       headEulerAngleY: face.headEulerAngleY,
       headEulerAngleZ: face.headEulerAngleZ,
+      landmarks: face.landmarks,
+      contours: face.contours,
       timestamp: DateTime.now(),
       originalFace: face,
     );

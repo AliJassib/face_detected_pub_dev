@@ -98,7 +98,7 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
           return _buildLoadingWidget();
         }
 
-        return Stack(children: [_buildCameraPreview(), _buildOverlay(), if (widget.showDebugInfo) _buildDebugInfo()]);
+        return Stack(children: [_buildCameraPreview(controller.detectedFaces), _buildOverlay(controller.cameraController!), if (widget.showDebugInfo) _buildDebugInfo()]);
       }),
     );
   }
@@ -116,7 +116,7 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
     );
   }
 
-  Widget _buildCameraPreview() {
+  Widget _buildCameraPreview(RxList<FaceData> detectedFaces) {
     final cameraController = controller.cameraController;
     if (cameraController == null || !cameraController.value.isInitialized) {
       return Container();
@@ -130,7 +130,7 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
     );
   }
 
-  Widget _buildOverlay() {
+  Widget _buildOverlay(CameraController cameraController) {
     if (widget.customOverlay != null) {
       return widget.customOverlay!(context);
     }
@@ -140,10 +140,9 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
         children: [
           _buildHeader(),
 
-          // Expanded(
-          //   child: _buildFaceGuide(),
-          // ),
+          // Expanded(child: _buildFaceGuide()),
           Spacer(),
+
           _buildInstructions(),
           _buildControls(),
         ],
@@ -274,28 +273,6 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
             // _buildStepIndicator(),
           ],
         ),
-      );
-    });
-  }
-
-  Widget _buildStepIndicator() {
-    return Obx(() {
-      final currentStep = controller.currentStep.value;
-      final steps = VerificationStep.values.take(4).toList(); // Exclude completed
-
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: steps.map((step) {
-          final isActive = step.index <= currentStep.index;
-          final isCurrent = step == currentStep;
-
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: isActive ? (isCurrent ? widget.primaryColor : Colors.green) : widget.textColor.withOpacity(0.3)),
-          );
-        }).toList(),
       );
     });
   }
