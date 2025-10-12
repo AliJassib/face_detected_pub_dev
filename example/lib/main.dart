@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:face_detected/face_detected.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -33,10 +34,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Face Verification Demo'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
+      appBar: AppBar(title: const Text('Face Verification Demo'), backgroundColor: Theme.of(context).colorScheme.inversePrimary),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -62,30 +60,21 @@ class _HomePageState extends State<HomePage> {
                 onPressed: _startFaceVerification,
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('Start Face Verification'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), textStyle: const TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _startFaceVerificationModal,
                 icon: const Icon(Icons.fullscreen),
                 label: const Text('Open as Modal'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), textStyle: const TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _startCustomVerification,
                 icon: const Icon(Icons.settings),
                 label: const Text('Custom Configuration'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18),
-                ),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), textStyle: const TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 24),
               if (_lastResult != null) _buildResultCard(),
@@ -107,37 +96,22 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-                Icon(
-                  result.success ? Icons.check_circle : Icons.error,
-                  color: result.success ? Colors.green : Colors.red,
-                ),
+                Icon(result.success ? Icons.check_circle : Icons.error, color: result.success ? Colors.green : Colors.red),
                 const SizedBox(width: 8),
-                Text(
-                  result.success
-                      ? 'Verification Successful'
-                      : 'Verification Failed',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(result.success ? 'Verification Successful' : 'Verification Failed', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 8),
             if (result.success) ...[
               Text('Captured Images: ${result.faceImagePaths.length}'),
               Text('Face Data: ${result.faceData.length}'),
-              if (result.verificationDuration != null)
-                Text('Duration: ${result.verificationDuration!.inSeconds}s'),
+              if (result.verificationDuration != null) Text('Duration: ${result.verificationDuration!.inSeconds}s'),
             ] else ...[
               Text('Error: ${result.errorMessage ?? 'Unknown error'}'),
             ],
             const SizedBox(height: 16),
             if (result.faceImagePaths.isNotEmpty) ...[
-              const Text(
-                'Captured Images:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              const Text('Captured Images:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               _buildImageGrid(result.faceImagePaths),
             ],
@@ -154,16 +128,10 @@ class _HomePageState extends State<HomePage> {
       child: GridView.builder(
         scrollDirection: Axis.vertical,
         itemCount: imagePaths.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 2,
-          childAspectRatio: 0.95,
-        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 2, childAspectRatio: 0.95),
         itemBuilder: (context, index) {
           final imagePath = imagePaths[index];
-          final label = index < labels.length
-              ? labels[index]
-              : 'Image ${index + 1}';
+          final label = index < labels.length ? labels[index] : 'Image ${index + 1}';
 
           return Container(
             width: 150,
@@ -171,13 +139,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 10),
                 Expanded(
                   child: Container(
@@ -196,13 +158,7 @@ class _HomePageState extends State<HomePage> {
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.grey[200],
-                            child: const Center(
-                              child: Icon(
-                                Icons.error,
-                                color: Colors.red,
-                                size: 40,
-                              ),
-                            ),
+                            child: const Center(child: Icon(Icons.error, color: Colors.red, size: 40)),
                           );
                         },
                       ),
@@ -231,9 +187,7 @@ class _HomePageState extends State<HomePage> {
         print('Face detected: ${faceData.toString()}');
       },
       onError: (error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $error')));
       },
     );
 
@@ -243,14 +197,7 @@ class _HomePageState extends State<HomePage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.success
-                ? 'Verification completed successfully!'
-                : 'Verification failed: ${result.errorMessage}',
-          ),
-          backgroundColor: result.success ? Colors.green : Colors.red,
-        ),
+        SnackBar(content: Text(result.success ? 'Verification completed successfully!' : 'Verification failed: ${result.errorMessage}'), backgroundColor: result.success ? Colors.green : Colors.red),
       );
     }
   }
@@ -275,15 +222,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _startCustomVerification() async {
-    final customConfig = FaceVerificationConfig(
-      timeoutPerStep: 15,
-      smileThreshold: 0.8,
-      eyeOpenThreshold: 0.6,
-      eyeClosedThreshold: 0.2,
-      saveImages: true,
-      imageQuality: 0.95,
-      numberOfImages: 5,
-    );
+    final customConfig = FaceVerificationConfig(timeoutPerStep: 15, smileThreshold: 0.8, eyeOpenThreshold: 0.6, eyeClosedThreshold: 0.2, saveImages: true, imageQuality: 0.95, numberOfImages: 5);
 
     final result = await FaceVerification.showVerificationPage(
       context,
@@ -293,7 +232,9 @@ class _HomePageState extends State<HomePage> {
       showFaceLandmarks: true,
       showDebugInfo: true,
       onStepChanged: (step) {
-        print('Custom verification step: ${step.name}');
+        if (kDebugMode) {
+          print('Custom verification step: ${step.name}');
+        }
       },
     );
 

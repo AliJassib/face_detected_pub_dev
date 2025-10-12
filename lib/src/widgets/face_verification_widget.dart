@@ -71,18 +71,69 @@ class FaceVerificationWidget extends StatefulWidget {
   State<FaceVerificationWidget> createState() => _FaceVerificationWidgetState();
 }
 
-class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
+class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
+    with TickerProviderStateMixin {
   late FaceVerificationController controller;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  // All state is now in the Controller! 🎉
 
   @override
   void initState() {
     super.initState();
     controller = Get.put(FaceVerificationController());
+
+    // Initialize animation controller (يجب أن يحصل مرة واحدة فقط)
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 4000), // 4 seconds total (أطول)
+      vsync: this,
+    );
+
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_animationController);
+
+    // Listen to animation completion
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // Hide the mesh first (GetX from Controller!)
+        controller.showFaceMesh.value = false;
+
+        // Show verification success message
+        Future.delayed(const Duration(milliseconds: 300), () {
+          controller.showVerificationMessage.value = true;
+          controller.verificationMessage.value = '✅ تم التحقق من الوجه بنجاح!';
+
+          // Hide message and start tasks after 2 seconds
+          Future.delayed(const Duration(seconds: 2), () {
+            controller.showVerificationMessage.value = false;
+            // Now tasks can start automatically
+          });
+        });
+      }
+    });
+
+    // Listen to face detection SUCCESS to start animation once (GetX from Controller!)
+    ever(controller.isStepCompleted, (isCompleted) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (isCompleted &&
+            controller.currentStep.value == VerificationStep.faceDetection &&
+            !controller.hasShownAnimation.value) {
+          controller.hasShownAnimation.value = true;
+          controller.showFaceMesh.value = true; // From Controller!
+          _animationController.forward();
+        }
+      });
+    });
+
     _initializeVerification();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     Get.delete<FaceVerificationController>();
     super.dispose();
   }
@@ -118,8 +169,22 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
                 controller.detectedFaces,
                 controller.cameraController!,
               ),
-            _buildOverlay(controller.cameraController!),
-            if (widget.showDebugInfo) _buildDebugInfo(),
+            // Use Obx for reactive updates from Controller!
+            Obx(
+              () => controller.showFaceMesh.value
+                  ? const SizedBox.shrink()
+                  : _buildOverlay(controller.cameraController!),
+            ),
+            Obx(
+              () => controller.showFaceMesh.value && widget.showDebugInfo
+                  ? _buildDebugInfo()
+                  : const SizedBox.shrink(),
+            ),
+            Obx(
+              () => controller.showVerificationMessage.value
+                  ? _buildVerificationMessage()
+                  : const SizedBox.shrink(),
+            ),
           ],
         );
       }),
@@ -369,24 +434,124 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
     CameraController cameraController,
   ) {
     return Obx(() {
-      if (faces.isEmpty) return const SizedBox.shrink();
+      if (faces.isEmpty || !controller.showFaceMesh.value)
+        return const SizedBox.shrink();
 
       return Positioned(
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+
         child: RotatedBox(
           quarterTurns: 3,
-          child: CustomPaint(
-            painter: FaceLandmarksPainter(
-              faces: faces.toList(),
-              cameraPreviewSize: cameraController.value.previewSize!,
-              screenSize: MediaQuery.of(context).size,
-            ),
+          child: AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return CustomPaint(
+                painter: FaceLandmarksPainter(
+                  faces: faces.toList(),
+                  cameraPreviewSize: cameraController.value.previewSize!,
+                  screenSize: MediaQuery.of(context).size,
+                  animationProgress: _animation.value,
+                ),
+              );
+            },
           ),
         ),
       );
     });
+  }
+
+  Widget _buildVerificationMessage() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              widget.primaryColor.withOpacity(0.95),
+              widget.primaryColor.withOpacity(0.85),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: widget.primaryColor.withOpacity(0.3),
+              blurRadius: 20,
+              spreadRadius: 5,
+              offset: const Offset(0, 10),
+            ),
+          ],
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Success icon with animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 500),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 60,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            // Message text from Controller!
+            Obx(
+              () => Text(
+                controller.verificationMessage.value,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'جاري بدء المهام...',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Progress indicator
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

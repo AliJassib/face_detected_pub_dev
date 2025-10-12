@@ -31,6 +31,12 @@ class FaceVerificationController extends GetxController {
   final RxBool isTransitioning = false.obs;
   final RxString successMessage = ''.obs;
 
+  // Face mesh animation states
+  final RxBool hasShownAnimation = false.obs;
+  final RxBool showFaceMesh = false.obs;
+  final RxBool showVerificationMessage = false.obs;
+  final RxString verificationMessage = ''.obs;
+
   // Configuration
   late FaceVerificationConfig config;
 
