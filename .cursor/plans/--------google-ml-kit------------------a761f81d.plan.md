@@ -1,125 +1,76 @@
-<!-- a761f81d-e426-4e21-99ee-8850d995a9f3 107345f2-ec5f-4c4d-8917-2c7416f86971 -->
-# استبدال google_ml_kit بالمكتبة الجديدة
+<!-- a761f81d-e426-4e21-99ee-8850d995a9f3 1ca4edc2-71f4-40b4-9091-efba0d44ead6 -->
+# إصلاح تطابق رسم نقاط الوجه
 
-## الملفات المتأثرة
+## المشكلة
 
-سيتم تعديل 3 ملفات فقط:
+النقاط والخطوط مرسومة في مكان خاطئ (على اليسار) بدلاً من فوق الوجه مباشرة.
 
-### 1. تحديث pubspec.yaml
+## السبب
 
-**المسار:** `/Users/alijassib/Documents/ahmad jassim/face_detected/pubspec.yaml`
+الكاميرا معروضة باستخدام `BoxFit.cover` مما يسبب:
 
-استبدال السطر 26:
+- تغيير في scale والأبعاد
+- offset في الموضع
+- دالة `_scalePoint()` لا تأخذ هذا التأثير بالحسبان
 
-```yaml
-# من:
-google_ml_kit: ^0.20.0
+## الحل
 
-# إلى:
-google_mlkit_face_detection: ^0.13.1
-```
+### تعديل face_landmarks_painter.dart
 
-**السبب:** المكتبة الجديدة معيارية وأصغر حجماً وموصى بها من Google
+سنعيد كتابة دالة `_scalePoint()` لتأخذ بعين الاعتبار:
 
----
+1. Camera preview aspect ratio
+2. Screen aspect ratio
+3. BoxFit.cover effect (scaling + offset)
+4. Platform differences (iOS vs Android)
+5. Mirror effect للكاميرا الأمامية
 
-### 2. تحديث face_detection_service.dart
+الخطوات:
 
-**المسار:** `/Users/alijassib/Documents/ahmad jassim/face_detected/lib/src/services/face_detection_service.dart`
+1. حساب scale factor الصحيح مع BoxFit.cover
+2. حساب الـ offset الناتج من cover mode
+3. تطبيق التحويلات الصحيحة للإحداثيات
+4. معالجة الاختلافات بين iOS و Android
 
-استبدال السطر 6:
-
-```dart
-// من:
-import 'package:google_ml_kit/google_ml_kit.dart';
-
-// إلى:
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-```
-
-**ملاحظة:** باقي الكود يبقى كما هو بدون أي تغيير لأن API متطابقة
-
----
-
-### 3. تحديث face_data.dart
-
-**المسار:** `/Users/alijassib/Documents/ahmad jassim/face_detected/lib/src/models/face_data.dart`
-
-استبدال السطر 2:
+## الكود المطلوب
 
 ```dart
-// من:
-import 'package:google_ml_kit/google_ml_kit.dart';
-
-// إلى:
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+Offset _scalePoint(Offset point, Size size) {
+  // Calculate BoxFit.cover scale and offset
+  final double previewAspectRatio = cameraPreviewSize.width / cameraPreviewSize.height;
+  final double screenAspectRatio = size.width / size.height;
+  
+  double scale;
+  double offsetX = 0;
+  double offsetY = 0;
+  
+  if (previewAspectRatio > screenAspectRatio) {
+    // Preview is wider - fit height, crop width
+    scale = size.height / cameraPreviewSize.height;
+    offsetX = (cameraPreviewSize.width * scale - size.width) / 2;
+  } else {
+    // Preview is taller - fit width, crop height  
+    scale = size.width / cameraPreviewSize.width;
+    offsetY = (cameraPreviewSize.height * scale - size.height) / 2;
+  }
+  
+  // Apply transformation
+  if (Platform.isIOS) {
+    // iOS front camera: rotated 270° 
+    return Offset(
+      size.width - (point.dy * scale - offsetX),
+      point.dx * scale - offsetY,
+    );
+  } else {
+    // Android front camera: mirrored
+    return Offset(
+      size.width - (point.dx * scale - offsetX),
+      point.dy * scale - offsetY,
+    );
+  }
+}
 ```
-
----
-
-## خطوات التنفيذ بعد التعديلات
-
-### 4. تحديث الاعتماديات (Dependencies)
-
-```bash
-cd /Users/alijassib/Documents/ahmad\ jassim/face_detected
-flutter pub get
-```
-
-### 5. تحديث iOS Pods
-
-```bash
-cd example/ios
-pod install --repo-update
-cd ../..
-```
-
-### 6. تنظيف المشروع
-
-```bash
-flutter clean
-cd example
-flutter clean
-cd ..
-```
-
-### 7. إعادة البناء
-
-```bash
-cd example
-flutter pub get
-flutter run
-```
-
----
-
-## ملاحظات مهمة
-
-1. **لا تغيير في الكود المنطقي:** جميع Classes والMethods تبقى كما هي:
-
-   - `FaceDetector`
-   - `FaceDetectorOptions`
-   - `Face`
-   - `FaceLandmark`, `FaceLandmarkType`
-   - `FaceContour`, `FaceContourType`
-   - كل الخصائص (smilingProbability, leftEyeOpenProbability, إلخ)
-
-2. **الدقة متطابقة 100%:** لأن كلا المكتبتين تستخدم نفس Native APIs من Google
-
-3. **المتطلبات متوافقة:**
-
-   - iOS: deployment target 15.5 ✓ (موجود فعلاً)
-   - Android: minSdk 24 ✓ (المطلوب 21 فقط)
-
-4. **حجم التطبيق:** سينخفض لأن المكتبة الجديدة تحتوي فقط على Face Detection
-
-5. **example/pubspec.yaml:** لا يحتاج تعديل لأنه يعتمد على المكتبة المحلية عبر `path: ../`
 
 ### To-dos
 
-- [ ] تحديث pubspec.yaml الرئيسي باستبدال google_ml_kit بـ google_mlkit_face_detection
-- [ ] تحديث import في face_detection_service.dart
-- [ ] تحديث import في face_data.dart
-- [ ] تشغيل flutter pub get في المشروع الرئيسي
-- [ ] تشغيل pod install في example/ios
-- [ ] تنظيف وإعادة بناء المشروع
+- [ ] تعديل دالة _scalePoint في face_landmarks_painter.dart لحساب BoxFit.cover بشكل صحيح

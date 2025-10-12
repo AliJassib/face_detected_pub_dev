@@ -6,6 +6,7 @@ import '../controllers/face_verification_controller.dart';
 import '../models/face_data.dart';
 import '../models/verification_config.dart';
 import '../models/verification_result.dart';
+import 'face_landmarks_painter.dart';
 
 /// Widget for face verification with customizable UI
 class FaceVerificationWidget extends StatefulWidget {
@@ -112,9 +113,12 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
         return Stack(
           children: [
             _buildCameraPreview(controller.detectedFaces),
+            if (widget.showFaceLandmarks)
+              _buildFaceLandmarks(
+                controller.detectedFaces,
+                controller.cameraController!,
+              ),
             _buildOverlay(controller.cameraController!),
-            // if (widget.showFaceLandmarks)
-            //   _buildFaceLandmarks(controller.detectedFaces),
             if (widget.showDebugInfo) _buildDebugInfo(),
           ],
         );
@@ -358,5 +362,31 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
         );
       }),
     );
+  }
+
+  Widget _buildFaceLandmarks(
+    RxList<FaceData> faces,
+    CameraController cameraController,
+  ) {
+    return Obx(() {
+      if (faces.isEmpty) return const SizedBox.shrink();
+
+      return Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: RotatedBox(
+          quarterTurns: 3,
+          child: CustomPaint(
+            painter: FaceLandmarksPainter(
+              faces: faces.toList(),
+              cameraPreviewSize: cameraController.value.previewSize!,
+              screenSize: MediaQuery.of(context).size,
+            ),
+          ),
+        ),
+      );
+    });
   }
 }

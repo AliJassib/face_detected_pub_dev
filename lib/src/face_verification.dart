@@ -28,6 +28,7 @@ class FaceVerification {
     Color backgroundColor = Colors.black,
     Color textColor = Colors.white,
     bool showDebugInfo = false,
+    bool showFaceLandmarks = true,
   }) {
     return FaceVerificationWidget(
       key: key,
@@ -43,6 +44,7 @@ class FaceVerification {
       backgroundColor: backgroundColor,
       textColor: textColor,
       showDebugInfo: showDebugInfo,
+      showFaceLandmarks: showFaceLandmarks,
     );
   }
 
@@ -61,6 +63,7 @@ class FaceVerification {
     Color backgroundColor = Colors.black,
     Color textColor = Colors.white,
     bool showDebugInfo = false,
+    bool showFaceLandmarks = true,
   }) async {
     VerificationResult? result;
 
@@ -82,6 +85,7 @@ class FaceVerification {
           backgroundColor: backgroundColor,
           textColor: textColor,
           showDebugInfo: showDebugInfo,
+          showFaceLandmarks: showFaceLandmarks,
         ),
       ),
     );
@@ -104,6 +108,7 @@ class FaceVerification {
     Color backgroundColor = Colors.black,
     Color textColor = Colors.white,
     bool showDebugInfo = false,
+    bool showFaceLandmarks = true,
     double height = 0.9,
   }) async {
     VerificationResult? result;
@@ -130,6 +135,7 @@ class FaceVerification {
           backgroundColor: backgroundColor,
           textColor: textColor,
           showDebugInfo: showDebugInfo,
+          showFaceLandmarks: showFaceLandmarks,
         ),
       ),
     );

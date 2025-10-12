@@ -222,6 +222,8 @@ class _HomePageState extends State<HomePage> {
       context,
       timeoutPerStep: 1000000,
       // TODO 1000000 is just for testing, set a reasonable timeout in production 10
+      showFaceLandmarks: true,
+      showDebugInfo: true,
       onStepChanged: (step) {
         print('Step changed: ${step.name}');
       },
@@ -258,6 +260,8 @@ class _HomePageState extends State<HomePage> {
       context,
       timeoutPerStep: 8,
       height: 0.85,
+      showFaceLandmarks: true,
+      showDebugInfo: true,
       onStepChanged: (step) {
         print('Modal step changed: ${step.name}');
       },
@@ -286,6 +290,7 @@ class _HomePageState extends State<HomePage> {
       config: customConfig,
       primaryColor: Colors.purple,
       backgroundColor: Colors.black87,
+      showFaceLandmarks: true,
       showDebugInfo: true,
       onStepChanged: (step) {
         print('Custom verification step: ${step.name}');
