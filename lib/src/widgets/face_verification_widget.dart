@@ -31,7 +31,8 @@ class FaceVerificationWidget extends StatefulWidget {
   final Widget Function(BuildContext context)? customOverlay;
 
   /// Custom instruction widget
-  final Widget Function(BuildContext context, String instruction)? customInstructions;
+  final Widget Function(BuildContext context, String instruction)?
+  customInstructions;
 
   /// Theme colors
   final Color primaryColor;
@@ -41,8 +42,14 @@ class FaceVerificationWidget extends StatefulWidget {
   /// Show debug information
   final bool showDebugInfo;
 
+  /// Show face landmarks overlay
+  final bool showFaceLandmarks;
+
+  /// Use enhanced face painter with info
+  final bool useEnhancedPainter;
+
   const FaceVerificationWidget({
-    Key? key,
+    super.key,
     this.config,
     this.timeoutPerStep = 5,
     required this.onVerificationComplete,
@@ -55,7 +62,9 @@ class FaceVerificationWidget extends StatefulWidget {
     this.backgroundColor = Colors.black,
     this.textColor = Colors.white,
     this.showDebugInfo = false,
-  }) : super(key: key);
+    this.showFaceLandmarks = true,
+    this.useEnhancedPainter = false,
+  });
 
   @override
   State<FaceVerificationWidget> createState() => _FaceVerificationWidgetState();
@@ -78,7 +87,9 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
   }
 
   Future<void> _initializeVerification() async {
-    final config = widget.config ?? FaceVerificationConfig(timeoutPerStep: widget.timeoutPerStep);
+    final config =
+        widget.config ??
+        FaceVerificationConfig(timeoutPerStep: widget.timeoutPerStep);
 
     await controller.initialize(
       verificationConfig: config,
@@ -98,7 +109,15 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
           return _buildLoadingWidget();
         }
 
-        return Stack(children: [_buildCameraPreview(controller.detectedFaces), _buildOverlay(controller.cameraController!), if (widget.showDebugInfo) _buildDebugInfo()]);
+        return Stack(
+          children: [
+            _buildCameraPreview(controller.detectedFaces),
+            _buildOverlay(controller.cameraController!),
+            // if (widget.showFaceLandmarks)
+            //   _buildFaceLandmarks(controller.detectedFaces),
+            if (widget.showDebugInfo) _buildDebugInfo(),
+          ],
+        );
       }),
     );
   }
@@ -108,9 +127,14 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(widget.primaryColor)),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(widget.primaryColor),
+          ),
           const SizedBox(height: 16),
-          Text('Initializing camera...', style: TextStyle(color: widget.textColor, fontSize: 16)),
+          Text(
+            'Initializing camera...',
+            style: TextStyle(color: widget.textColor, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -125,7 +149,11 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
     return SizedBox.expand(
       child: FittedBox(
         fit: BoxFit.cover,
-        child: SizedBox(width: cameraController.value.previewSize!.height, height: cameraController.value.previewSize!.width, child: CameraPreview(cameraController)),
+        child: SizedBox(
+          width: cameraController.value.previewSize!.height,
+          height: cameraController.value.previewSize!.width,
+          child: CameraPreview(cameraController),
+        ),
       ),
     );
   }
@@ -163,7 +191,11 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
             Expanded(
               child: Text(
                 'Face Verification',
-                style: TextStyle(color: widget.textColor, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: widget.textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -171,55 +203,6 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildFaceGuide() {
-    return Center(
-      child: Obx(() {
-        final hasDetectedFace = controller.detectedFaces.isNotEmpty;
-        final isStepCompleted = controller.isStepCompleted.value;
-        final isTransitioning = controller.isTransitioning.value;
-
-        // Determine circle color and animation based on state
-        Color circleColor;
-        String displayText;
-        double scale = 1.0;
-
-        if (isStepCompleted) {
-          circleColor = Colors.green;
-          displayText = '✓';
-          scale = 1.2; // Scale up for success animation
-        } else if (hasDetectedFace) {
-          circleColor = Colors.green;
-          displayText = '✓';
-        } else {
-          circleColor = widget.primaryColor;
-          displayText = '👤';
-        }
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          transform: Matrix4.identity()..scale(scale),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 250,
-            height: 320,
-            decoration: BoxDecoration(
-              border: Border.all(color: circleColor, width: isStepCompleted ? 6 : 4),
-              borderRadius: BorderRadius.circular(125),
-              boxShadow: isStepCompleted ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 20, spreadRadius: 5)] : null,
-            ),
-            child: Center(
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 300),
-                style: TextStyle(fontSize: isStepCompleted ? 60 : 48, color: circleColor),
-                child: Text(displayText),
-              ),
-            ),
-          ),
-        );
-      }),
     );
   }
 
@@ -237,9 +220,19 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
         duration: const Duration(milliseconds: 500),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
-          color: isStepCompleted ? Colors.green.withOpacity(0.8) : Colors.black.withOpacity(0.5),
+          color: isStepCompleted
+              ? Colors.green.withValues(alpha: 0.8)
+              : Colors.black.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(25),
-          boxShadow: isStepCompleted ? [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 15, spreadRadius: 3)] : null,
+          boxShadow: isStepCompleted
+              ? [
+                  BoxShadow(
+                    color: Colors.green.withValues(alpha: 0.3),
+                    blurRadius: 15,
+                    spreadRadius: 3,
+                  ),
+                ]
+              : null,
         ),
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         alignment: Alignment.center,
@@ -248,7 +241,11 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
           children: [
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 300),
-              style: TextStyle(color: widget.textColor, fontSize: isStepCompleted ? 20 : 18, fontWeight: isStepCompleted ? FontWeight.bold : FontWeight.w500),
+              style: TextStyle(
+                color: widget.textColor,
+                fontSize: isStepCompleted ? 20 : 18,
+                fontWeight: isStepCompleted ? FontWeight.bold : FontWeight.w500,
+              ),
               child: Text(instruction, textAlign: TextAlign.center),
             ),
             if (isStepCompleted && successMessage.isNotEmpty) ...[
@@ -259,11 +256,19 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Success!',
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -285,10 +290,17 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Obx(() {
-              if (controller.isVerificationComplete.value || controller.errorMessage.value.isNotEmpty) {
+              if (controller.isVerificationComplete.value ||
+                  controller.errorMessage.value.isNotEmpty) {
                 return ElevatedButton(
                   onPressed: () => controller.restart(),
-                  style: ElevatedButton.styleFrom(backgroundColor: widget.primaryColor, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.primaryColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
                   child: const Text('Try Again'),
                 );
               }
@@ -308,18 +320,33 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget> {
         final faces = controller.detectedFaces;
         return Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Debug Info',
-                style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: widget.textColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              Text('Step: ${controller.currentStep.value.name}', style: TextStyle(color: widget.textColor)),
-              Text('Faces: ${faces.length}', style: TextStyle(color: widget.textColor)),
+              Text(
+                'Step: ${controller.currentStep.value.name}',
+                style: TextStyle(color: widget.textColor),
+              ),
+              Text(
+                'Faces: ${faces.length}',
+                style: TextStyle(color: widget.textColor),
+              ),
               if (faces.isNotEmpty) ...[
-                Text('Smile: ${faces.first.smilingProbability?.toStringAsFixed(2) ?? 'N/A'}', style: TextStyle(color: widget.textColor)),
+                Text(
+                  'Smile: ${faces.first.smilingProbability?.toStringAsFixed(2) ?? 'N/A'}',
+                  style: TextStyle(color: widget.textColor),
+                ),
                 Text(
                   'Eyes: L${faces.first.leftEyeOpenProbability?.toStringAsFixed(2) ?? 'N/A'} '
                   'R${faces.first.rightEyeOpenProbability?.toStringAsFixed(2) ?? 'N/A'}',
