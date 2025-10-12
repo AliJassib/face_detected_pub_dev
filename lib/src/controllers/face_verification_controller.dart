@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:get/get.dart';
 import '../models/face_data.dart';
@@ -36,6 +37,10 @@ class FaceVerificationController extends GetxController {
   final RxBool showFaceMesh = false.obs;
   final RxBool showVerificationMessage = false.obs;
   final RxString verificationMessage = ''.obs;
+
+  // Circle overlay state
+  final RxBool showCircleOverlay = false.obs;
+  ui.Size? screenSize; // Store screen size for circle validation
 
   // Configuration
   late FaceVerificationConfig config;
@@ -76,6 +81,7 @@ class FaceVerificationController extends GetxController {
       onError = onErrorCallback;
       onStepChanged = onStepChange;
       onFaceDetected = onFaceDetection;
+      // screenSize is set directly from widget in didChangeDependencies
 
       await _initializeCamera();
       await _faceDetectionService.initialize();
@@ -130,6 +136,86 @@ class FaceVerificationController extends GetxController {
     onStepChanged?.call(currentStep.value);
   }
 
+  /// Check if face is inside the circle overlay (with proper coordinate transformation)
+  bool _isFaceInsideCircle(FaceData face) {
+    if (!showCircleOverlay.value || screenSize == null)
+      return true; // No circle or no screen size = allow all
+
+    final faceRect = face.originalFace?.boundingBox;
+    if (faceRect == null) return false;
+
+    // Get camera preview size
+    final previewSize = _cameraController?.value.previewSize;
+    if (previewSize == null) return true;
+
+    // Transform face center using same logic as painter
+    final faceCenterRaw = faceRect.center;
+    final faceCenterScreen = _scalePoint(
+      faceCenterRaw,
+      previewSize,
+      screenSize!,
+    );
+
+    // Circle properties
+    final circleRadius = screenSize!.width * 0.4;
+    final circleCenter = ui.Offset(
+      screenSize!.width / 2,
+      screenSize!.height / 2,
+    );
+
+    // Calculate distance from face center to circle center
+    final distance = (faceCenterScreen - circleCenter).distance;
+
+    // Face should be mostly inside the circle (with some tolerance)
+    final isInside = distance < circleRadius * 0.8;
+
+    if (!isInside) {
+      print('Face outside circle: distance=$distance, radius=$circleRadius');
+    }
+
+    return isInside;
+  }
+
+  /// Scale point from camera coordinates to screen coordinates (same as painter)
+  ui.Offset _scalePoint(
+    ui.Offset point,
+    ui.Size previewSize,
+    ui.Size screenSize,
+  ) {
+    // Calculate BoxFit.cover scale and offset
+    final double previewAspectRatio = previewSize.width / previewSize.height;
+    final double screenAspectRatio = screenSize.width / screenSize.height;
+
+    double scale;
+    double offsetX = 0;
+    double offsetY = 0;
+
+    if (previewAspectRatio > screenAspectRatio) {
+      // Preview is wider - fit height, crop width
+      scale = screenSize.height / previewSize.height;
+      offsetX = (previewSize.width * scale - screenSize.width) / 2;
+    } else {
+      // Preview is taller - fit width, crop height
+      scale = screenSize.width / previewSize.width;
+      offsetY = (previewSize.height * scale - screenSize.height) / 2;
+    }
+
+    // Apply transformation (same as iOS logic in painter)
+    if (Platform.isIOS) {
+      // iOS front camera: rotated 270°
+      return ui.Offset(
+        screenSize.width - (point.dy * scale - offsetX),
+        point.dx * scale - offsetY,
+      );
+    } else {
+      // Android front camera: mirrored
+      return ui.Offset(
+        screenSize.width - (point.dx * scale - offsetX),
+        point.dy * scale - offsetY,
+      );
+    }
+  }
+
   /// Process camera image for face detection
   void _processCameraImage(CameraImage image) async {
     if (isProcessing.value || isVerificationComplete.value) return;
@@ -176,6 +262,12 @@ class FaceVerificationController extends GetxController {
   /// Handle detected face based on current step
   Future<void> _handleDetectedFace(FaceData face, CameraImage image) async {
     if (isTransitioning.value || isStepCompleted.value) return;
+
+    // Check if face is inside circle overlay (if active)
+    if (!_isFaceInsideCircle(face)) {
+      statusMessage.value = 'يرجى وضع وجهك داخل الدائرة';
+      return;
+    }
 
     if (!face.hasGoodHeadPose(
       maxYaw: config.maxHeadRotation,

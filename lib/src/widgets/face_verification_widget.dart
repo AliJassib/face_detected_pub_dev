@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import '../models/face_data.dart';
 import '../models/verification_config.dart';
 import '../models/verification_result.dart';
 import 'face_landmarks_painter.dart';
+import 'circle_overlay_painter.dart';
 
 /// Widget for face verification with customizable UI
 class FaceVerificationWidget extends StatefulWidget {
@@ -76,6 +78,8 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
   late FaceVerificationController controller;
   late AnimationController _animationController;
   late Animation<double> _animation;
+  late AnimationController _circleAnimationController;
+  late Animation<double> _circleAnimation;
 
   // All state is now in the Controller! 🎉
 
@@ -95,6 +99,19 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
       end: 1.0,
     ).animate(_animationController);
 
+    // Initialize circle animation controller
+    _circleAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _circleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _circleAnimationController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
     // Listen to animation completion
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -106,9 +123,11 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
           controller.showVerificationMessage.value = true;
           controller.verificationMessage.value = '✅ تم التحقق من الوجه بنجاح!';
 
-          // Hide message and start tasks after 2 seconds
-          Future.delayed(const Duration(seconds: 2), () {
+          // Hide message and show circle overlay after 2 seconds
+          Future.delayed(const Duration(seconds: 0), () {
             controller.showVerificationMessage.value = false;
+            controller.showCircleOverlay.value = true; // Show circle!
+            _circleAnimationController.forward(); // Start circle animation
             // Now tasks can start automatically
           });
         });
@@ -128,12 +147,27 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
       });
     });
 
-    _initializeVerification();
+    // Don't call _initializeVerification() here - will be called in didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Initialize verification here (after MediaQuery is available)
+    if (controller.screenSize == null) {
+      controller.screenSize = ui.Size(
+        MediaQuery.of(context).size.width,
+        MediaQuery.of(context).size.height,
+      );
+      _initializeVerification();
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _circleAnimationController.dispose();
     Get.delete<FaceVerificationController>();
     super.dispose();
   }
@@ -148,7 +182,9 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
       onComplete: widget.onVerificationComplete,
       onErrorCallback: widget.onError,
       onStepChange: widget.onStepChanged,
+
       onFaceDetection: widget.onFaceDetected,
+      // screenSize already set in didChangeDependencies!
     );
   }
 
@@ -169,6 +205,12 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
                 controller.detectedFaces,
                 controller.cameraController!,
               ),
+            // Circle overlay (shows after verification message)
+            Obx(
+              () => controller.showCircleOverlay.value
+                  ? _buildCircleOverlay()
+                  : const SizedBox.shrink(),
+            ),
             // Use Obx for reactive updates from Controller!
             Obx(
               () => controller.showFaceMesh.value
@@ -178,11 +220,6 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
             Obx(
               () => controller.showFaceMesh.value && widget.showDebugInfo
                   ? _buildDebugInfo()
-                  : const SizedBox.shrink(),
-            ),
-            Obx(
-              () => controller.showVerificationMessage.value
-                  ? _buildVerificationMessage()
                   : const SizedBox.shrink(),
             ),
           ],
@@ -552,6 +589,25 @@ class _FaceVerificationWidgetState extends State<FaceVerificationWidget>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCircleOverlay() {
+    final size = MediaQuery.of(context).size;
+    final circleRadius = size.width * 0.4; // 40% of screen width
+
+    return AnimatedBuilder(
+      animation: _circleAnimation,
+      builder: (context, child) {
+        return CustomPaint(
+          size: size,
+          painter: CircleOverlayPainter(
+            circleRadius: circleRadius,
+            overlayColor: Colors.black,
+            animationProgress: _circleAnimation.value,
+          ),
+        );
+      },
     );
   }
 }
