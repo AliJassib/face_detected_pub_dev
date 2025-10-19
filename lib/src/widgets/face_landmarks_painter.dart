@@ -103,23 +103,29 @@ class FaceLandmarksPainter extends CustomPainter {
       if (progress > 0) {
         // All landmarks in green
         final pointPaint = Paint()
-          ..color = const Color(
-            0xFF4CAF50,
+          ..color = const ui.Color.fromARGB(
+            255,
+            175,
+            175,
+            76,
           ).withValues(alpha: progress * opacity)
           ..style = PaintingStyle.fill;
 
         final glowPaint = Paint()
-          ..color = const Color(
-            0xFF4CAF50,
+          ..color = const ui.Color.fromARGB(
+            255,
+            165,
+            175,
+            76,
           ).withValues(alpha: progress * opacity * 0.3)
           ..style = PaintingStyle.fill
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
 
         // Draw glow
-        canvas.drawCircle(position, 8.0 * progress, glowPaint);
+        canvas.drawCircle(position, 5.0 * progress, glowPaint);
 
         // Draw main point
-        canvas.drawCircle(position, 6.0 * progress, pointPaint);
+        canvas.drawCircle(position, 3.0 * progress, pointPaint);
 
         // Draw white center
         final centerPaint = Paint()
@@ -150,23 +156,29 @@ class FaceLandmarksPainter extends CustomPainter {
           if (progress > 0) {
             // All contour points in green
             final pointPaint = Paint()
-              ..color = const Color(
-                0xFF4CAF50,
+              ..color = const ui.Color.fromARGB(
+                255,
+                165,
+                175,
+                76,
               ).withValues(alpha: progress * opacity)
               ..style = PaintingStyle.fill;
 
             final glowPaint = Paint()
-              ..color = const Color(
-                0xFF4CAF50,
+              ..color = const ui.Color.fromARGB(
+                255,
+                153,
+                175,
+                76,
               ).withValues(alpha: progress * opacity * 0.2)
               ..style = PaintingStyle.fill
               ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
 
             // Draw glow
-            canvas.drawCircle(position, 5.0 * progress, glowPaint);
+            canvas.drawCircle(position, 2.5 * progress, glowPaint);
 
             // Draw main point (smaller for contours)
-            canvas.drawCircle(position, 3.0 * progress, pointPaint);
+            canvas.drawCircle(position, 1.5 * progress, pointPaint);
 
             // Draw white center
             final centerPaint = Paint()
@@ -217,7 +229,7 @@ class FaceLandmarksPainter extends CustomPainter {
       }
     });
 
-    final yellow = const Color(0xFFFFEB3B); // Yellow color
+    final yellow = const ui.Color.fromARGB(255, 152, 143, 65); // Yellow color
 
     // Draw landmark connections
     _drawLandmarkConnections(
@@ -296,6 +308,7 @@ class FaceLandmarksPainter extends CustomPainter {
     Offset start,
     Offset end,
     Color color,
+
     double progress,
     double opacity,
   ) {
@@ -312,9 +325,9 @@ class FaceLandmarksPainter extends CustomPainter {
 
     // Create glow paint
     final glowPaint = Paint()
-      ..color = color.withValues(alpha: progress * opacity * 0.4)
+      ..color = color.withValues(alpha: progress * opacity * 0.6)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5.0
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
 

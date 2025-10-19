@@ -41,7 +41,7 @@ class CircleOverlayPainter extends CustomPainter {
         stops: const [0.0, 0.5, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: animatedRadius))
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
+      ..strokeWidth = 0.0;
 
     canvas.drawCircle(center, animatedRadius, borderPaint);
 
@@ -53,26 +53,26 @@ class CircleOverlayPainter extends CustomPainter {
     final linePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
     final glowPaint = Paint()
       ..color = Colors.blue.withOpacity(0.5)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5.0
+      ..strokeWidth = 0.0
       ..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
 
-    // Draw lines at 8 positions around the circle
-    for (int i = 0; i < 8; i++) {
-      final angle = (i * math.pi / 4) - math.pi / 2;
+    // Draw lines at 20 positions around the circle
+    for (int i = 0; i < 20; i++) {
+      final angle = (i * 2 * math.pi / 20) - math.pi / 2;
 
       // Calculate position on circle edge
       final x = center.dx + radius * math.cos(angle);
       final y = center.dy + radius * math.sin(angle);
 
       // Calculate line start and end points (outward from circle)
-      final lineLength = 20.0;
+      final lineLength = 25.0;
       final startX = x + (lineLength / 2) * math.cos(angle);
       final startY = y + (lineLength / 2) * math.sin(angle);
       final endX = x - (lineLength / 2) * math.cos(angle);
@@ -86,63 +86,6 @@ class CircleOverlayPainter extends CustomPainter {
 
       // Draw main line
       canvas.drawLine(start, end, linePaint);
-    }
-
-    // Draw corner brackets at 4 main positions
-    _drawCornerBrackets(canvas, center, radius);
-  }
-
-  void _drawCornerBrackets(Canvas canvas, Offset center, double radius) {
-    final bracketPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0
-      ..strokeCap = StrokeCap.round;
-
-    final glowPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
-
-    // Draw brackets at 4 main positions (top, right, bottom, left)
-    for (int i = 0; i < 4; i++) {
-      final angle = i * math.pi / 2;
-
-      final x = center.dx + radius * math.cos(angle);
-      final y = center.dy + radius * math.sin(angle);
-
-      final bracketSize = 30.0;
-      final bracketOffset = 15.0;
-
-      // Calculate bracket points
-      final outerPoint = Offset(
-        x + bracketOffset * math.cos(angle),
-        y + bracketOffset * math.sin(angle),
-      );
-
-      final leftPoint = Offset(
-        outerPoint.dx + bracketSize * math.cos(angle + math.pi / 2),
-        outerPoint.dy + bracketSize * math.sin(angle + math.pi / 2),
-      );
-
-      final rightPoint = Offset(
-        outerPoint.dx + bracketSize * math.cos(angle - math.pi / 2),
-        outerPoint.dy + bracketSize * math.sin(angle - math.pi / 2),
-      );
-
-      // Draw bracket path
-      final path = Path()
-        ..moveTo(leftPoint.dx, leftPoint.dy)
-        ..lineTo(outerPoint.dx, outerPoint.dy)
-        ..lineTo(rightPoint.dx, rightPoint.dy);
-
-      // Draw glow
-      canvas.drawPath(path, glowPaint);
-
-      // Draw main bracket
-      canvas.drawPath(path, bracketPaint);
     }
   }
 
