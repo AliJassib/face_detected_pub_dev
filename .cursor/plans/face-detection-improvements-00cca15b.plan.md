@@ -60,20 +60,495 @@ class FaceComparisonService {
 - اختيار الوجه المراد التحقق منه
 - مقارنة عدة وجوه
 
-### 2.5 خطوات تحقق قابلة للتخصيص
+### 2.5 خطوات تحقق عشوائية (Random Verification Steps) ⭐ أولوية عالية
+
+#### المشكلة الحالية:
+
+- الخطوات ثابتة دائماً: Face Detection → Smile → Eyes Closed → Eyes Open
+- يمكن للمهاجم معرفة الخطوات مسبقاً وتحضير فيديو مسجل
+- لا يوجد عنصر المفاجأة
+
+#### الحل المقترح:
 
 ```dart
-class CustomVerificationSteps {
-  List<VerificationStep> steps = [
-    VerificationStep.faceDetection,
-    VerificationStep.headTurnLeft,    // جديد
-    VerificationStep.headTurnRight,   // جديد
-    VerificationStep.lookUp,          // جديد
-    VerificationStep.lookDown,        // جديد
-    VerificationStep.smileDetection,
-    // يمكن للمطور اختيار الخطوات المطلوبة
-  ];
+/// تعريف جميع خطوات التحقق الممكنة
+enum VerificationStepType {
+  faceDetection,        // كشف الوجه (إلزامي دائماً)
+  smileDetection,       // ابتسامة
+  eyeCloseDetection,    // إغماض العينين
+  eyeOpenDetection,     // فتح العينين
+  headTurnLeft,         // 🆕 دوران الرأس لليسار
+  headTurnRight,        // 🆕 دوران الرأس لليمين
+  lookUp,               // 🆕 النظر للأعلى
+  lookDown,             // 🆕 النظر للأسفل
+  mouthOpen,            // 🆕 فتح الفم
+  blinkBothEyes,        // 🆕 رمش العينين
+  raiseEyebrows,        // 🆕 رفع الحاجبين
+  headNod,              // 🆕 هز الرأس للأعلى والأسفل
+  headShake,            // 🆕 هز الرأس يمين ويسار
 }
+
+/// إعدادات الخطوات العشوائية
+class RandomVerificationConfig {
+  /// عدد الخطوات العشوائية المطلوبة (غير Face Detection)
+  final int numberOfRandomSteps;
+  
+  /// الخطوات المتاحة للاختيار العشوائي
+  final List<VerificationStepType> availableSteps;
+  
+  /// هل نضمن عدم تكرار الخطوات؟
+  final bool allowDuplicateSteps;
+  
+  /// الخطوات الإلزامية (ستظهر دائماً)
+  final List<VerificationStepType> mandatorySteps;
+  
+  /// الحد الأدنى من الوقت بين كل خطوة (ثواني)
+  final int minTimeBetweenSteps;
+  
+  /// هل نعرض ترتيب الخطوات للمستخدم مقدماً؟
+  final bool showStepsSequenceUpfront;
+  
+  /// مستوى الصعوبة
+  final DifficultyLevel difficultyLevel;
+  
+  const RandomVerificationConfig({
+    this.numberOfRandomSteps = 3,
+    this.availableSteps = const [
+      VerificationStepType.smileDetection,
+      VerificationStepType.eyeCloseDetection,
+      VerificationStepType.eyeOpenDetection,
+      VerificationStepType.headTurnLeft,
+      VerificationStepType.headTurnRight,
+      VerificationStepType.blinkBothEyes,
+    ],
+    this.allowDuplicateSteps = false,
+    this.mandatorySteps = const [VerificationStepType.faceDetection],
+    this.minTimeBetweenSteps = 1,
+    this.showStepsSequenceUpfront = false,
+    this.difficultyLevel = DifficultyLevel.medium,
+  });
+}
+
+enum DifficultyLevel {
+  easy,    // خطوات بسيطة، وقت أطول
+  medium,  // خطوات متوسطة، وقت عادي
+  hard,    // خطوات صعبة، وقت أقل
+  extreme, // خطوات معقدة جداً، وقت قصير جداً
+}
+
+/// مولّد الخطوات العشوائية
+class RandomStepsGenerator {
+  final Random _random = Random.secure(); // استخدام Random.secure() للأمان
+  
+  /// توليد خطوات عشوائية
+  List<VerificationStepType> generateRandomSteps(
+    RandomVerificationConfig config,
+  ) {
+    final List<VerificationStepType> generatedSteps = [];
+    
+    // 1. إضافة الخطوات الإلزامية أولاً
+    generatedSteps.addAll(config.mandatorySteps);
+    
+    // 2. الخطوات المتاحة للاختيار (بدون الإلزامية)
+    final availableForRandom = config.availableSteps
+        .where((step) => !config.mandatorySteps.contains(step))
+        .toList();
+    
+    // 3. اختيار خطوات عشوائية
+    if (config.allowDuplicateSteps) {
+      // مع التكرار
+      for (int i = 0; i < config.numberOfRandomSteps; i++) {
+        final randomIndex = _random.nextInt(availableForRandom.length);
+        generatedSteps.add(availableForRandom[randomIndex]);
+      }
+    } else {
+      // بدون تكرار
+      final shuffled = List<VerificationStepType>.from(availableForRandom)
+        ..shuffle(_random);
+      
+      final stepsToAdd = min(
+        config.numberOfRandomSteps,
+        shuffled.length,
+      );
+      
+      generatedSteps.addAll(shuffled.take(stepsToAdd));
+    }
+    
+    // 4. خلط الخطوات (ماعدا Face Detection يبقى أول)
+    final firstStep = generatedSteps.first;
+    final restSteps = generatedSteps.skip(1).toList()..shuffle(_random);
+    
+    return [firstStep, ...restSteps];
+  }
+  
+  /// توليد خطوات بناءً على مستوى الصعوبة
+  List<VerificationStepType> generateByDifficulty(
+    DifficultyLevel difficulty,
+  ) {
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return generateRandomSteps(
+          RandomVerificationConfig(
+            numberOfRandomSteps: 2,
+            availableSteps: [
+              VerificationStepType.smileDetection,
+              VerificationStepType.eyeCloseDetection,
+              VerificationStepType.eyeOpenDetection,
+            ],
+          ),
+        );
+        
+      case DifficultyLevel.medium:
+        return generateRandomSteps(
+          RandomVerificationConfig(
+            numberOfRandomSteps: 3,
+            availableSteps: [
+              VerificationStepType.smileDetection,
+              VerificationStepType.eyeCloseDetection,
+              VerificationStepType.headTurnLeft,
+              VerificationStepType.headTurnRight,
+              VerificationStepType.blinkBothEyes,
+            ],
+          ),
+        );
+        
+      case DifficultyLevel.hard:
+        return generateRandomSteps(
+          RandomVerificationConfig(
+            numberOfRandomSteps: 4,
+            availableSteps: [
+              VerificationStepType.smileDetection,
+              VerificationStepType.headTurnLeft,
+              VerificationStepType.headTurnRight,
+              VerificationStepType.lookUp,
+              VerificationStepType.lookDown,
+              VerificationStepType.mouthOpen,
+              VerificationStepType.blinkBothEyes,
+            ],
+          ),
+        );
+        
+      case DifficultyLevel.extreme:
+        return generateRandomSteps(
+          RandomVerificationConfig(
+            numberOfRandomSteps: 5,
+            availableSteps: VerificationStepType.values
+                .where((s) => s != VerificationStepType.faceDetection)
+                .toList(),
+          ),
+        );
+    }
+  }
+}
+
+/// الاستخدام في التطبيق
+class FaceVerificationWidget extends StatefulWidget {
+  final RandomVerificationConfig? randomConfig;
+  final bool useRandomSteps; // تفعيل/تعطيل الخطوات العشوائية
+  
+  const FaceVerificationWidget({
+    this.randomConfig,
+    this.useRandomSteps = false, // معطل افتراضياً للتوافق مع الكود القديم
+    // ... باقي الـ parameters
+  });
+}
+
+// مثال على الاستخدام:
+FaceVerification.createWidget(
+  useRandomSteps: true, // ✅ تفعيل الخطوات العشوائية
+  randomConfig: RandomVerificationConfig(
+    numberOfRandomSteps: 3, // اختر 3 خطوات عشوائية
+    availableSteps: [
+      VerificationStepType.smileDetection,
+      VerificationStepType.headTurnLeft,
+      VerificationStepType.headTurnRight,
+      VerificationStepType.eyeCloseDetection,
+      VerificationStepType.blinkBothEyes,
+    ],
+    allowDuplicateSteps: false, // لا تكرر نفس الخطوة
+    showStepsSequenceUpfront: false, // لا تعرض الخطوات مقدماً (أكثر أماناً)
+    difficultyLevel: DifficultyLevel.medium,
+  ),
+  onVerificationComplete: (result) {
+    print('Steps used: ${result.stepsCompleted}');
+  },
+);
+
+// مثال بسيط باستخدام مستوى الصعوبة فقط:
+FaceVerification.createWidget(
+  useRandomSteps: true,
+  randomConfig: RandomVerificationConfig(
+    difficultyLevel: DifficultyLevel.hard,
+  ),
+  onVerificationComplete: (result) {
+    // ...
+  },
+);
+```
+
+#### مثال على UI للخطوات العشوائية:
+
+```dart
+/// عرض الخطوات بشكل ديناميكي
+class VerificationStepsIndicator extends StatelessWidget {
+  final List<VerificationStepType> steps;
+  final int currentStepIndex;
+  final bool showUpfront; // هل نعرض كل الخطوات مقدماً؟
+  
+  @override
+  Widget build(BuildContext context) {
+    if (!showUpfront) {
+      // عرض الخطوة الحالية فقط
+      return _buildCurrentStepOnly();
+    } else {
+      // عرض كل الخطوات مع تمييز الخطوة الحالية
+      return _buildAllSteps();
+    }
+  }
+  
+  Widget _buildCurrentStepOnly() {
+    final currentStep = steps[currentStepIndex];
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text('Step ${currentStepIndex + 1} of ${steps.length}'),
+          SizedBox(height: 8),
+          Text(
+            _getStepInstruction(currentStep),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Icon(_getStepIcon(currentStep), size: 48),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildAllSteps() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: steps.asMap().entries.map((entry) {
+          final index = entry.key;
+          final step = entry.value;
+          final isCompleted = index < currentStepIndex;
+          final isCurrent = index == currentStepIndex;
+          
+          return Column(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isCompleted
+                      ? Colors.green
+                      : isCurrent
+                          ? Colors.blue
+                          : Colors.grey,
+                ),
+                child: Icon(
+                  isCompleted ? Icons.check : _getStepIcon(step),
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                _getStepShortName(step),
+                style: TextStyle(fontSize: 10),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+  
+  String _getStepInstruction(VerificationStepType step) {
+    switch (step) {
+      case VerificationStepType.faceDetection:
+        return 'Look at the camera';
+      case VerificationStepType.smileDetection:
+        return 'Please smile 😊';
+      case VerificationStepType.eyeCloseDetection:
+        return 'Close your eyes';
+      case VerificationStepType.eyeOpenDetection:
+        return 'Open your eyes wide';
+      case VerificationStepType.headTurnLeft:
+        return 'Turn your head to the left ←';
+      case VerificationStepType.headTurnRight:
+        return 'Turn your head to the right →';
+      case VerificationStepType.lookUp:
+        return 'Look up ↑';
+      case VerificationStepType.lookDown:
+        return 'Look down ↓';
+      case VerificationStepType.mouthOpen:
+        return 'Open your mouth';
+      case VerificationStepType.blinkBothEyes:
+        return 'Blink both eyes';
+      case VerificationStepType.raiseEyebrows:
+        return 'Raise your eyebrows';
+      case VerificationStepType.headNod:
+        return 'Nod your head';
+      case VerificationStepType.headShake:
+        return 'Shake your head';
+    }
+  }
+  
+  IconData _getStepIcon(VerificationStepType step) {
+    switch (step) {
+      case VerificationStepType.faceDetection:
+        return Icons.face;
+      case VerificationStepType.smileDetection:
+        return Icons.emoji_emotions;
+      case VerificationStepType.eyeCloseDetection:
+        return Icons.visibility_off;
+      case VerificationStepType.eyeOpenDetection:
+        return Icons.visibility;
+      case VerificationStepType.headTurnLeft:
+        return Icons.arrow_back;
+      case VerificationStepType.headTurnRight:
+        return Icons.arrow_forward;
+      case VerificationStepType.lookUp:
+        return Icons.arrow_upward;
+      case VerificationStepType.lookDown:
+        return Icons.arrow_downward;
+      case VerificationStepType.mouthOpen:
+        return Icons.record_voice_over;
+      case VerificationStepType.blinkBothEyes:
+        return Icons.remove_red_eye;
+      default:
+        return Icons.help;
+    }
+  }
+}
+```
+
+#### التحديثات المطلوبة على الكود الحالي:
+
+```dart
+// في face_verification_controller.dart
+class FaceVerificationController extends GetxController {
+  // إضافة متغيرات جديدة
+  late List<VerificationStepType> verificationSteps;
+  final Rx<int> currentStepIndex = 0.obs;
+  final RandomStepsGenerator _stepsGenerator = RandomStepsGenerator();
+  
+  @override
+  void onInit() {
+    super.onInit();
+    
+    // توليد الخطوات العشوائية عند البداية
+    if (config.useRandomSteps) {
+      verificationSteps = _stepsGenerator.generateRandomSteps(
+        config.randomConfig ?? RandomVerificationConfig(),
+      );
+      
+      print('Generated random steps: $verificationSteps');
+    } else {
+      // استخدام الخطوات الثابتة القديمة
+      verificationSteps = [
+        VerificationStepType.faceDetection,
+        VerificationStepType.smileDetection,
+        VerificationStepType.eyeCloseDetection,
+        VerificationStepType.eyeOpenDetection,
+      ];
+    }
+  }
+  
+  // تحديث دالة التحقق من الوجه
+  Future<void> _handleDetectedFace(FaceData face, CameraImage image) async {
+    final currentStep = verificationSteps[currentStepIndex.value];
+    
+    switch (currentStep) {
+      case VerificationStepType.faceDetection:
+        await _handleFaceDetection(face, image);
+        break;
+      case VerificationStepType.smileDetection:
+        await _handleSmileDetection(face, image);
+        break;
+      case VerificationStepType.headTurnLeft:
+        await _handleHeadTurnLeft(face, image);
+        break;
+      case VerificationStepType.headTurnRight:
+        await _handleHeadTurnRight(face, image);
+        break;
+      // ... باقي الحالات
+    }
+  }
+  
+  // دالة للانتقال للخطوة التالية
+  void _moveToNextStep() {
+    if (currentStepIndex.value < verificationSteps.length - 1) {
+      currentStepIndex.value++;
+      onStepChanged?.call(verificationSteps[currentStepIndex.value]);
+    } else {
+      _completeVerification();
+    }
+  }
+}
+```
+
+#### تحديث VerificationResult لتضمين الخطوات المستخدمة:
+
+```dart
+class VerificationResult {
+  final bool success;
+  final List<String> faceImagePaths;
+  final List<FaceData> faceData;
+  final String? errorMessage;
+  final Duration? verificationDuration;
+  
+  // 🆕 إضافة الخطوات التي تم استخدامها
+  final List<VerificationStepType> stepsCompleted;
+  final Map<VerificationStepType, Duration> stepDurations; // مدة كل خطوة
+  
+  const VerificationResult({
+    required this.success,
+    required this.faceImagePaths,
+    required this.faceData,
+    this.errorMessage,
+    this.verificationDuration,
+    this.stepsCompleted = const [],
+    this.stepDurations = const {},
+  });
+}
+```
+
+#### الفوائد الأمنية:
+
+1. **منع Replay Attacks**: لا يمكن استخدام فيديو مسجل مسبقاً
+2. **زيادة الأمان**: المهاجم لا يعرف الخطوات مسبقاً
+3. **كشف Deepfakes**: الفيديوهات المزيفة لن تتمكن من التكيف مع الخطوات العشوائية
+4. **تجربة مستخدم أفضل**: تنوع في كل مرة، أقل ملل
+
+#### إعدادات موصى بها حسب حالة الاستخدام:
+
+```dart
+// للتطبيقات المصرفية (أمان عالي)
+RandomVerificationConfig(
+  numberOfRandomSteps: 4,
+  difficultyLevel: DifficultyLevel.hard,
+  showStepsSequenceUpfront: false, // لا تعرض الخطوات مقدماً
+  minTimeBetweenSteps: 2,
+)
+
+// للتطبيقات العادية (أمان متوسط)
+RandomVerificationConfig(
+  numberOfRandomSteps: 3,
+  difficultyLevel: DifficultyLevel.medium,
+  showStepsSequenceUpfront: true, // يمكن عرض الخطوات
+  minTimeBetweenSteps: 1,
+)
+
+// لتطبيقات سهلة الاستخدام (أمان منخفض)
+RandomVerificationConfig(
+  numberOfRandomSteps: 2,
+  difficultyLevel: DifficultyLevel.easy,
+  showStepsSequenceUpfront: true,
+)
 ```
 
 ### 2.6 تشفير الصور المحفوظة
